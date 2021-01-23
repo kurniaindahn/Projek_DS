@@ -1,0 +1,77 @@
+---
+title: "Projek Akhir Prak DS"
+author: "Kurnia Indah N/123180095"
+date: "1/21/2021"
+output: word_document
+---
+
+```{r}
+library(tm)
+library(vroom)
+library(here)
+
+rawData <- vroom(here('Restaurant_Reviews.csv'))
+review <- rawData$Review
+rev <- Corpus(VectorSource(review))
+removeURL <- function(x) gsub("http[^[:space:]]*","",x)
+revclean <- tm_map(rev, removeURL)
+removeNL <- function(y) gsub("\n","",y)
+revclean <- tm_map(revclean, removeNL)
+replacecomma <- function(y) gsub(",","",y)
+revclean <- tm_map(revclean, replacecomma)
+removetitik2 <- function(y) gsub(":","",y)
+revclean <- tm_map(revclean, removetitik2)
+removetitikkoma <- function(y) gsub(";","",y)
+revclean <- tm_map(revclean, removetitikkoma)
+removetitik3 <- function(y) gsub("pÃ¢.Â¦","",y)
+revclean <- tm_map(revclean, removetitik3)
+removeamp <- function(y) gsub("&amp:","",y)
+revclean <- tm_map(revclean, removeamp)
+removeUN <- function(z) gsub("@\\w+","",z)
+revclean <- tm_map(revclean, removeUN)
+remove.all <- function(xy) gsub("[^[:alpha:][:space:]]*","",xy)
+revclean <- tm_map(revclean, remove.all)
+revclean <- tm_map(revclean, removePunctuation)
+revclean <- tm_map(revclean, tolower)
+
+
+cleanData <- data.frame(text=unlist(sapply(revclean, '[')), stringsAsFactors = F)
+write.csv(cleanData, file='cleanData.csv')
+```
+
+
+```{r}
+library(shiny)
+library(e1071)
+library(tm)
+library(plyr)
+library(ggplot2)
+library(sentimentr)
+library(syuzhet)
+
+
+ui<-fluidPage(
+  titlePanel("ANALISIS SENTIMEN REVIEW RESTORAN"),
+  mainPanel(
+    plotOutput("scatterplot"),
+    plotOutput("wordcloud")
+  )
+)
+
+server<-function(input,output){
+  output$scatterplot<-renderPlot({
+    revData <- read.csv("cleanData.csv", stringsAsFactors = FALSE)
+    reviewData <- as.character(revData$text)
+    get_nrc_sentiment('happy')
+    get_nrc_sentiment('excitement')
+    s <- get_nrc_sentiment(reviewData)
+    
+    review_combine <- cbind(revData$text,s)
+    par(mar=rep(3,4))
+    a <- barplot(colSums(s), col=rainbow(10), ylab='count', main='Sentiment Analysis')
+    brplt <- a
+  })
+}
+shinyApp(ui=ui, server=server)
+
+```
